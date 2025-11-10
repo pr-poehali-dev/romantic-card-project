@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 
 const Index = () => {
@@ -11,11 +12,38 @@ const Index = () => {
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedCards, setMatchedCards] = useState<number[]>([]);
   const [compliment, setCompliment] = useState('');
-  const [fortune, setFortune] = useState('');
   const [daysTogether, setDaysTogether] = useState(0);
   const [startDate, setStartDate] = useState('');
   const [quizAnswer, setQuizAnswer] = useState('');
   const [quizResult, setQuizResult] = useState('');
+
+  const [loveClicks, setLoveClicks] = useState(0);
+  const [lovePerClick, setLovePerClick] = useState(1);
+  const [autoLove, setAutoLove] = useState(0);
+  const [upgradeCost, setUpgradeCost] = useState(10);
+  const [autoUpgradeCost, setAutoUpgradeCost] = useState(50);
+
+  const [familyLevel, setFamilyLevel] = useState(1);
+  const [familyGold, setFamilyGold] = useState(100);
+  const [buildings, setBuildings] = useState({
+    house: 0,
+    garden: 0,
+    pool: 0,
+    playground: 0,
+  });
+
+  const [birdLaunched, setBirdLaunched] = useState(false);
+  const [birdPosition, setBirdPosition] = useState({ x: 10, y: 50 });
+  const [targets, setTargets] = useState([
+    { id: 1, x: 70, y: 60, hit: false },
+    { id: 2, x: 80, y: 50, hit: false },
+    { id: 3, x: 75, y: 40, hit: false },
+  ]);
+  const [score, setScore] = useState(0);
+
+  const [battleUnits, setBattleUnits] = useState(0);
+  const [enemyUnits, setEnemyUnits] = useState(5);
+  const [battleGold, setBattleGold] = useState(50);
 
   const hearts = Array.from({ length: 15 }, (_, i) => ({
     id: i,
@@ -35,14 +63,14 @@ const Index = () => {
     'Твои глаза - две звезды! ⭐',
   ];
 
-  const fortunes = [
-    'Сегодня вас ждет романтический сюрприз! 💝',
-    'Скоро произойдет что-то волшебное в вашей паре! ✨',
-    'Ваша любовь будет крепнуть с каждым днем! 💪',
-    'Впереди незабываемое приключение вдвоем! 🎭',
-    'Судьба готовит вам особенный момент! 🌟',
-    'Ваши мечты скоро сбудутся! 🎯',
-  ];
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (autoLove > 0) {
+        setLoveClicks((prev) => prev + autoLove);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [autoLove]);
 
   const initMemoryGame = () => {
     const cards = [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6];
@@ -73,11 +101,6 @@ const Index = () => {
     setCompliment(random);
   };
 
-  const getFortune = () => {
-    const random = fortunes[Math.floor(Math.random() * fortunes.length)];
-    setFortune(random);
-  };
-
   const calculateDays = () => {
     if (startDate) {
       const start = new Date(startDate);
@@ -93,6 +116,96 @@ const Index = () => {
       setQuizResult('Правильно! Ты знаешь меня лучше всех! 💖');
     } else {
       setQuizResult('Попробуй еще раз! Подсказка: самое главное чувство 💕');
+    }
+  };
+
+  const handleLoveClick = () => {
+    setLoveClicks(loveClicks + lovePerClick);
+  };
+
+  const upgradeClickPower = () => {
+    if (loveClicks >= upgradeCost) {
+      setLoveClicks(loveClicks - upgradeCost);
+      setLovePerClick(lovePerClick + 1);
+      setUpgradeCost(Math.floor(upgradeCost * 1.5));
+    }
+  };
+
+  const upgradeAutoLove = () => {
+    if (loveClicks >= autoUpgradeCost) {
+      setLoveClicks(loveClicks - autoUpgradeCost);
+      setAutoLove(autoLove + 1);
+      setAutoUpgradeCost(Math.floor(autoUpgradeCost * 2));
+    }
+  };
+
+  const buildStructure = (type: keyof typeof buildings, cost: number) => {
+    if (familyGold >= cost) {
+      setFamilyGold(familyGold - cost);
+      setBuildings({ ...buildings, [type]: buildings[type] + 1 });
+      if ((buildings.house + buildings.garden + buildings.pool + buildings.playground) % 5 === 4) {
+        setFamilyLevel(familyLevel + 1);
+        setFamilyGold(familyGold + 50);
+      }
+    }
+  };
+
+  const launchBird = () => {
+    if (!birdLaunched) {
+      setBirdLaunched(true);
+      let x = 10;
+      let y = 50;
+      const interval = setInterval(() => {
+        x += 5;
+        y = 50 - Math.sin((x - 10) * 0.05) * 30;
+        
+        setBirdPosition({ x, y });
+
+        targets.forEach((target) => {
+          if (!target.hit && Math.abs(x - target.x) < 5 && Math.abs(y - target.y) < 8) {
+            target.hit = true;
+            setScore(score + 10);
+            setTargets([...targets]);
+          }
+        });
+
+        if (x > 100) {
+          clearInterval(interval);
+          setBirdLaunched(false);
+          setBirdPosition({ x: 10, y: 50 });
+          
+          const allHit = targets.every((t) => t.hit);
+          if (allHit) {
+            setTargets([
+              { id: 1, x: 70, y: 60, hit: false },
+              { id: 2, x: 80, y: 50, hit: false },
+              { id: 3, x: 75, y: 40, hit: false },
+            ]);
+          }
+        }
+      }, 50);
+    }
+  };
+
+  const deployUnit = () => {
+    if (battleGold >= 10) {
+      setBattleGold(battleGold - 10);
+      setBattleUnits(battleUnits + 1);
+    }
+  };
+
+  const startBattle = () => {
+    if (battleUnits > enemyUnits) {
+      setBattleGold(battleGold + 30);
+      setEnemyUnits(enemyUnits + 2);
+      setBattleUnits(0);
+      alert('Победа! Наша семья становится сильнее! 💪');
+    } else if (battleUnits === enemyUnits) {
+      setBattleUnits(0);
+      alert('Ничья! Попробуй добавить больше юнитов! 🤝');
+    } else {
+      setBattleUnits(0);
+      alert('Поражение! Нужно больше сил! 💔');
     }
   };
 
@@ -245,6 +358,143 @@ const Index = () => {
             <div className="grid gap-8">
               <Card className="p-8 bg-white/90 backdrop-blur-sm">
                 <h3 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+                  <span>💕</span> Кликер любви
+                </h3>
+                <div className="text-center space-y-6">
+                  <div className="text-6xl font-bold text-primary">{loveClicks} 💖</div>
+                  <Button 
+                    onClick={handleLoveClick} 
+                    size="lg" 
+                    className="text-4xl w-32 h-32 rounded-full"
+                  >
+                    💗
+                  </Button>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <p className="mb-2">Сила клика: {lovePerClick} 💪</p>
+                      <Button onClick={upgradeClickPower} disabled={loveClicks < upgradeCost}>
+                        Улучшить ({upgradeCost} 💖)
+                      </Button>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="mb-2">Авто-любовь: {autoLove}/сек ⚡</p>
+                      <Button onClick={upgradeAutoLove} disabled={loveClicks < autoUpgradeCost}>
+                        Улучшить ({autoUpgradeCost} 💖)
+                      </Button>
+                    </Card>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-8 bg-white/90 backdrop-blur-sm">
+                <h3 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+                  <span>🏰</span> Строим семью (как Clash of Clans)
+                </h3>
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <p className="text-2xl mb-2">Уровень семьи: {familyLevel}</p>
+                    <p className="text-xl">Золото: {familyGold} 🪙</p>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card className="p-4">
+                      <div className="text-4xl mb-2">🏠</div>
+                      <p className="mb-2">Дом: {buildings.house}</p>
+                      <Button onClick={() => buildStructure('house', 20)} disabled={familyGold < 20}>
+                        Построить (20 🪙)
+                      </Button>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-4xl mb-2">🌳</div>
+                      <p className="mb-2">Сад: {buildings.garden}</p>
+                      <Button onClick={() => buildStructure('garden', 30)} disabled={familyGold < 30}>
+                        Построить (30 🪙)
+                      </Button>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-4xl mb-2">🏊</div>
+                      <p className="mb-2">Бассейн: {buildings.pool}</p>
+                      <Button onClick={() => buildStructure('pool', 50)} disabled={familyGold < 50}>
+                        Построить (50 🪙)
+                      </Button>
+                    </Card>
+                    <Card className="p-4">
+                      <div className="text-4xl mb-2">🎠</div>
+                      <p className="mb-2">Площадка: {buildings.playground}</p>
+                      <Button onClick={() => buildStructure('playground', 40)} disabled={familyGold < 40}>
+                        Построить (40 🪙)
+                      </Button>
+                    </Card>
+                  </div>
+                  <Button onClick={() => setFamilyGold(familyGold + 50)} variant="outline">
+                    Заработать золото 💰
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="p-8 bg-white/90 backdrop-blur-sm">
+                <h3 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+                  <span>🐦</span> Птички любви (как Angry Birds)
+                </h3>
+                <p className="mb-4 text-xl">Очки: {score}</p>
+                <div className="relative h-64 bg-gradient-to-b from-blue-200 to-green-200 rounded-lg overflow-hidden">
+                  <div
+                    className="absolute text-4xl transition-all duration-100"
+                    style={{ left: `${birdPosition.x}%`, top: `${birdPosition.y}%` }}
+                  >
+                    🐦
+                  </div>
+                  {targets.map((target) => (
+                    !target.hit && (
+                      <div
+                        key={target.id}
+                        className="absolute text-3xl"
+                        style={{ left: `${target.x}%`, top: `${target.y}%` }}
+                      >
+                        🎯
+                      </div>
+                    )
+                  ))}
+                  <div className="absolute left-4 top-1/2 text-2xl">🎯</div>
+                </div>
+                <Button onClick={launchBird} disabled={birdLaunched} className="mt-4">
+                  {birdLaunched ? 'Летит...' : 'Запустить птичку! 💕'}
+                </Button>
+              </Card>
+
+              <Card className="p-8 bg-white/90 backdrop-blur-sm">
+                <h3 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+                  <span>⚔️</span> Битва за семью (как Clash Royale)
+                </h3>
+                <div className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-4 text-center">
+                    <Card className="p-4 bg-pink-100">
+                      <p className="text-xl mb-2">Наши силы 💖</p>
+                      <p className="text-4xl font-bold">{battleUnits}</p>
+                    </Card>
+                    <Card className="p-4 bg-red-100">
+                      <p className="text-xl mb-2">Проблемы 💢</p>
+                      <p className="text-4xl font-bold">{enemyUnits}</p>
+                    </Card>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl mb-4">Золото: {battleGold} 🪙</p>
+                    <div className="flex gap-4 justify-center flex-wrap">
+                      <Button onClick={deployUnit} disabled={battleGold < 10}>
+                        Добавить силу (10 🪙)
+                      </Button>
+                      <Button onClick={startBattle} variant="destructive" disabled={battleUnits === 0}>
+                        Начать битву! ⚔️
+                      </Button>
+                      <Button onClick={() => setBattleGold(battleGold + 20)} variant="outline">
+                        Заработать 💰
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-8 bg-white/90 backdrop-blur-sm">
+                <h3 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
                   <span>🎴</span> Игра в память
                 </h3>
                 <Button onClick={initMemoryGame} className="mb-6">
@@ -284,20 +534,6 @@ const Index = () => {
                 {compliment && (
                   <p className="text-2xl text-center p-6 bg-gradient-to-r from-pink-100 to-pink-200 rounded-lg animate-fade-in">
                     {compliment}
-                  </p>
-                )}
-              </Card>
-
-              <Card className="p-8 bg-white/90 backdrop-blur-sm">
-                <h3 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
-                  <span>🔮</span> Гадание на любовь
-                </h3>
-                <Button onClick={getFortune} className="mb-4">
-                  Узнать предсказание
-                </Button>
-                {fortune && (
-                  <p className="text-2xl text-center p-6 bg-gradient-to-r from-purple-100 to-pink-200 rounded-lg animate-fade-in">
-                    {fortune}
                   </p>
                 )}
               </Card>
